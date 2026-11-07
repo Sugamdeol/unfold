@@ -8,7 +8,7 @@ the drawing lights the parts it is about; click a part and you can ask about it.
 
 Live app: https://sugamdeol.github.io/unfold/
 
-![Unfold explaining Rayleigh scattering, with the diagram, the step text and the integrity score](docs/screenshot.png)
+![Unfold explaining the tides, with the diagram, the step text and the integrity score](docs/screenshot.png)
 
 ## What it does
 
@@ -37,7 +37,8 @@ Type a topic ("why is the sky blue", "how a neuron fires"), pick a reader level,
 - a reply with fewer than two parts, or with no usable steps, is refused outright.
 
 `app.js` draws the result as SVG, draws arrows between box edges rather than centres so
-the arrowhead lands on the border, and lights the parts and links each step names.
+the arrowhead lands on the border, places each link label at the first spot that does not
+sit on a box, and lights the parts and links each step names.
 
 ## The integrity score
 
