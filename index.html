@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unfold - a science topic you can take apart</title>
+<meta name="description" content="Unfold turns a science topic into a diagram you can take apart. A Pollinations model lays out the parts, the links and the steps, then you step through the figure and ask about any part. You pay with your own Pollen.">
+<style>
+  :root{
+    --paper:#f4f1e8; --card:#fffdf6; --ink:#1c2b28; --ink2:#3d4f4b;
+    --dim:#6d7f7a; --faint:#93a29d; --rule:#d8d2c2; --rule2:#c4bda9;
+    --green:#0f6b58; --green-soft:#dcefe6; --rust:#a8452a; --blue:#2b5f86;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(rgba(28,43,40,.055) 1px,transparent 1px);
+    background-size:20px 20px;
+  }
+  .wrap{max-width:1300px;margin:0 auto;padding:0 22px}
+  a{color:var(--green)}
+  .micro{font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--dim);font-weight:650}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+  header{padding:20px 0 16px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:22px;flex-wrap:wrap}
+  h1{font-size:27px;margin:0;letter-spacing:-.02em;font-weight:640;font-family:Georgia,"Times New Roman",serif}
+  h1 em{font-style:italic;color:var(--green)}
+  .tag{color:var(--ink2);margin:5px 0 0;max-width:74ch;font-size:13.5px}
+  .authbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .who{font-size:11.5px;color:var(--dim);max-width:180px;text-align:right}
+  button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:4px}
+  .btn{background:var(--ink);color:#f6f3e9;border:1px solid var(--ink);padding:9px 16px;font-weight:600}
+  .btn:hover{background:#0d1a17}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--rule2);padding:8px 12px}
+  .btn-ghost:hover{background:#fff;border-color:var(--dim)}
+  .btn-ghost[disabled]{opacity:.4;cursor:not-allowed}
+
+  main{padding:4px 0 40px}
+  .ask{background:var(--card);border:1px solid var(--rule2);border-radius:6px;padding:13px;box-shadow:2px 2px 0 rgba(28,43,40,.06)}
+  .askrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  input[type=text],input[type=password],select{
+    font-family:inherit;font-size:14px;background:#fff;color:var(--ink);
+    border:1px solid var(--rule2);border-radius:4px;padding:9px 11px}
+  input:focus,select:focus{outline:2px solid var(--green-soft);border-color:var(--green)}
+  #topic{flex:1;min-width:240px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{background:#fff;border:1px solid var(--rule);color:var(--dim);padding:4px 10px;border-radius:999px;font-size:11.5px}
+  .chip:hover{border-color:var(--green);color:var(--green)}
+  .keyrow{display:none;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .keyrow.on{display:flex}
+  .keyrow input{flex:1;min-width:220px}
+
+  .deck{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(310px,.78fr);gap:15px;margin-top:15px;align-items:start}
+  @media (max-width:1020px){.deck{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--rule2);border-radius:6px;box-shadow:2px 2px 0 rgba(28,43,40,.06)}
+  .card-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 13px;border-bottom:1px solid var(--rule)}
+  .card-b{padding:13px}
+
+  .stage{background:#fffdf6;border-radius:0 0 6px 6px;overflow:hidden}
+  svg{display:block;width:100%;height:auto}
+  /* On a narrow screen the canvas would scale to unreadable type, so keep it at
+     a legible size and let the stage scroll sideways instead. */
+  @media (max-width:760px){
+    .stage{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .stage svg{width:700px;min-width:700px}
+  }
+  /* On a phone the canvas would scale to ~4px type; keep it legible and let it
+     scroll sideways instead. */
+  .nbox{fill:#fff;stroke:#b9c2b2;stroke-width:1.5;transition:stroke .15s,fill .15s}
+  .nbox.hot{stroke:var(--green);stroke-width:2.4;fill:var(--green-soft)}
+  .nbox.cold{opacity:.34}
+  .nlab{fill:#1c2b28;font-size:13px;font-weight:640}
+  .nlab.cold{opacity:.4}
+  .nrole{fill:#7d8d88;font-size:10px}
+  .nrole.cold{opacity:.4}
+  .edge{stroke:#a9b6ac;stroke-width:1.5;fill:none}
+  .edge.hot{stroke:var(--green);stroke-width:2.3}
+  .edge.cold{opacity:.25}
+  .elab{fill:var(--blue);font-size:9.5px;font-family:ui-monospace,Menlo,monospace;paint-order:stroke;stroke:#fffdf6;stroke-width:3px}
+  .elab.cold{opacity:.3}
+  .hint{fill:#9aa8a2;font-size:14px}
+
+  .stepbar{display:flex;gap:8px;align-items:center;padding:9px 13px;border-top:1px solid var(--rule);flex-wrap:wrap}
+  .dots{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+  .dot{width:27px;height:27px;border-radius:3px;border:1px solid var(--rule2);background:#fff;color:var(--dim);font-size:11.5px;font-family:ui-monospace,monospace}
+  .dot:hover{border-color:var(--green);color:var(--green)}
+  .dot.on{background:var(--ink);color:#f6f3e9;border-color:var(--ink)}
+
+  .steptext{font-size:14px;color:var(--ink)}
+  .steptext b{color:var(--ink)}
+  .meta{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-top:14px}
+  .score{font-size:12px;color:var(--dim)}
+  .issues{margin:7px 0 0;padding-left:15px;font-size:11.5px;color:var(--rust);line-height:1.45}
+  .issues:empty{display:none}
+
+  .further{display:flex;flex-direction:column;gap:6px;margin-top:7px}
+  .further button{background:#fff;border:1px solid var(--rule);color:var(--blue);padding:7px 9px;font-size:12px;text-align:left;border-radius:4px}
+  .further button:hover{border-color:var(--blue)}
+
+  .status{min-height:20px;font-size:12px;color:var(--dim);margin-top:9px}
+  .status.err{color:var(--rust)}
+  .status.ok{color:var(--green)}
+
+  .askbox{margin-top:13px;border-top:1px dashed var(--rule2);padding-top:11px}
+  .askrow2{display:flex;gap:7px;margin-top:7px}
+  .askrow2 input{flex:1;font-size:12.5px;padding:7px 9px}
+  .answer{margin-top:9px;font-size:13px;color:var(--ink2);white-space:pre-wrap}
+  .answer:empty{display:none}
+
+  .notes{margin-top:17px;display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+  @media (max-width:880px){.notes{grid-template-columns:1fr}}
+  .notes h2{font-size:10.5px;margin:0 0 4px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .notes p{margin:0;color:var(--ink2);font-size:12.5px}
+  footer{border-top:1px solid var(--rule2);padding:13px 0 30px;color:var(--dim);font-size:11.5px}
+  .foot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap top">
+    <div>
+      <h1>Un<em>fold</em></h1>
+      <p class="tag">Name a science topic. A Pollinations model lays it out as a diagram of parts and links, writes the steps that read it, and you walk the figure one step at a time. Click any part to ask about it.</p>
+    </div>
+    <div class="authbox">
+      <span class="who" id="who">Not signed in</span>
+      <button class="btn-ghost" id="signBtn">Sign in with Pollen</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="ask">
+    <div class="askrow">
+      <label class="sr" for="topic">Science topic</label>
+      <input type="text" id="topic" placeholder="why is the sky blue" autocomplete="off">
+      <label class="sr" for="level">Reader level</label>
+      <select id="level">
+        <option value="a curious 12 year old">age 12</option>
+        <option value="a secondary school student" selected>school</option>
+        <option value="an undergraduate">undergrad</option>
+      </select>
+      <button class="btn" id="buildBtn">Unfold it</button>
+      <button class="btn-ghost" id="keyBtn" title="Use your own secret key instead of signing in">Use a key</button>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip">why is the sky blue</button>
+      <button class="chip">how a neuron fires</button>
+      <button class="chip">why the tides come twice a day</button>
+      <button class="chip">why ice floats on water</button>
+      <button class="chip">how mRNA vaccines work</button>
+      <button class="chip">why antibiotics stop working</button>
+    </div>
+    <div class="keyrow" id="keyrow">
+      <label class="sr" for="skey">Secret key</label>
+      <input type="password" id="skey" placeholder="sk_... your own Pollinations key">
+      <button class="btn-ghost" id="keyUse">Use this key</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <div class="deck">
+    <section class="card">
+      <div class="card-h">
+        <span class="micro" id="figtitle">The figure</span>
+        <span class="micro mono" id="figmeta">nothing drawn yet</span>
+      </div>
+      <div class="stage">
+        <svg id="svg" viewBox="0 0 1000 620" role="img" aria-labelledby="svgtitle">
+          <title id="svgtitle">Diagram of the current science topic</title>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#a9b6ac"></path>
+            </marker>
+            <marker id="arrowhot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f6b58"></path>
+            </marker>
+          </defs>
+          <g id="edges"></g>
+          <g id="nodes"></g>
+          <text class="hint" id="hint" x="500" y="300" text-anchor="middle">Pick a topic above. The model draws the parts, then you read it step by step.</text>
+        </svg>
+      </div>
+      <div class="stepbar">
+        <button class="btn-ghost" id="prev" aria-label="Previous step">Back</button>
+        <div class="dots" id="dots"></div>
+        <button class="btn-ghost" id="next" aria-label="Next step">Next</button>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="card-h">
+        <span class="micro" id="panelTitle">Reading it</span>
+        <span class="micro mono" id="stepmeta">0 / 0</span>
+      </div>
+      <div class="card-b">
+        <div class="steptext" id="steptext">Each step names the parts it is about, and the figure lights them. Nothing in the text is pre-written: the model proposed the diagram and the steps in one reply.</div>
+
+        <div class="meta">
+          <span class="micro">Diagram integrity</span>
+          <span class="score" id="score">no figure yet</span>
+        </div>
+        <div style="height:6px;background:#e7e2d3;border-radius:3px;overflow:hidden;margin-top:6px">
+          <i id="barfill" style="display:block;height:100%;width:0;background:var(--green);transition:width .3s"></i>
+        </div>
+        <ul class="issues" id="issues"></ul>
+
+        <div class="askbox">
+          <div class="micro" id="askhead">Ask about a part</div>
+          <div class="askrow2">
+            <label class="sr" for="q">Question about the selected part</label>
+            <input type="text" id="q" placeholder="select a part in the figure first" autocomplete="off" disabled>
+            <button class="btn-ghost" id="askBtn" disabled>Ask</button>
+          </div>
+          <div class="answer" id="answer"></div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="micro">Go further</div>
+          <div class="further" id="further"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div><h2>One reply, one figure</h2><p>The model returns the parts, the links and the steps as a single JSON object. A link to a part that is not in the reply is dropped before anything is drawn.</p></div>
+    <div><h2>Integrity is shown, not hidden</h2><p>The page scores the figure it received: boxes that overlap, parts nothing points at, steps that name no part. A rough figure says so instead of looking authoritative.</p></div>
+    <div><h2>Your Pollen pays</h2><p>Sign in with Pollinations, or paste your own key. The key stays in this tab and is sent to gen.pollinations.ai only. There is no server of ours.</p></div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Built for Pollinations quest #19181. <a href="https://pollinations.ai/?ref=badge">pollinations.ai</a></span>
+    <span class="mono" id="cost">0 model calls</span>
+  </div>
+</footer>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
